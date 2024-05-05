@@ -1,0 +1,5 @@
+aiohttp==3.9.5
+depthai==2.25.1.0
+mjpeg_streamer==2024.2.8
+opencv_contrib_python==4.5.5.62
+opencv_python==4.9.0.80
