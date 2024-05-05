@@ -1,0 +1,1 @@
+pyinstaller --onefile oakcam.py
