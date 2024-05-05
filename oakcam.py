@@ -1,21 +1,31 @@
 #!/usr/bin/python3
+from aiohttp import web
 import signal
+import cv2
 import sys
 import depthai as dai
 from mjpeg_streamer import MjpegServer, Stream
-from http.server import HTTPServer, BaseHTTPRequestHandler
-
 
 resX=1920
 resY=1080
 qual=100
-fps=30
+fps=10
 
 port=8080
 
-stream = Stream("oak_camera", size=(resX, resY), quality=qual, fps=fps)
-
 server = MjpegServer("0.0.0.0", port)
+
+
+lastFrame=None
+
+async def snapshot_handler(request):
+    ret, jpeg = cv2.imencode('.jpg', lastFrame)
+    jpg = jpeg.tobytes()
+    return web.Response(body=jpg, content_type='image/jpeg')
+
+stream = Stream("stream", size=(resX, resY), quality=qual, fps=fps)
+
+server._app.router.add_get('/snapshot', snapshot_handler)
 server.add_stream(stream);
 server.start();
 
@@ -37,10 +47,14 @@ xout.setStreamName("rgb")
 cam.preview.link(xout.input)
 
 # Connect to device and start pipeline
+def set_frame(frame):
+    global lastFrame
+    lastFrame = frame;
+    stream.set_frame(frame);
+    
 with dai.Device(pipeline) as device:
     qRgb = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
     while True:
-        frame = qRgb.get().getFrame()
-        stream.set_frame(frame)
+        set_frame(qRgb.get().getFrame())
 
 
